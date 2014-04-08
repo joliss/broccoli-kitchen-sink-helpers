@@ -135,14 +135,10 @@ function copyRecursivelySync (src, dest, _mkdirp) {
 exports.copyPreserveSync = copyPreserveSync
 function copyPreserveSync (src, dest, srcStats) {
   if (srcStats == null) srcStats = fs.lstatSync(src)
-  if (srcStats.isFile()) {
+  if (srcStats.isFile() || srcStats.isSymbolicLink()) {
     var content = fs.readFileSync(src)
     fs.writeFileSync(dest, content, { flag: 'wx' })
     fs.utimesSync(dest, srcStats.atime, srcStats.mtime)
-  } else if (srcStats.isSymbolicLink()) {
-    fs.symlinkSync(fs.readlinkSync(src), dest)
-    // We cannot update the atime/mtime of a symlink yet:
-    // https://github.com/joyent/node/issues/2142
   } else {
     throw new Error('Unexpected file type for ' + src)
   }
