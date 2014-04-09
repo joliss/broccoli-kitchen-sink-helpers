@@ -120,7 +120,7 @@ function copyRecursivelySync (src, dest, _mkdirp) {
     var entries = fs.readdirSync(src)
     for (var i = 0; i < entries.length; i++) {
       // Set _mkdirp to false when recursing to avoid extra mkdirp calls.
-      copyRecursivelySync(src + '/' + entries[i], dest + '/' + entries[i], false)
+      copyRecursivelySync(path.join(src, entries[i]), path.join(dest, entries[i]), false)
     }
   } else {
     if (_mkdirp) {
@@ -162,7 +162,7 @@ function linkAndOverwrite () {
 exports.assertAbsolutePaths = assertAbsolutePaths
 function assertAbsolutePaths (paths) {
   for (var i = 0; i < paths.length; i++) {
-    if (paths[i][0] !== '/') {
+    if (path.normalize(paths[i])[0] !== path.sep) {
       throw new Error('Path must be absolute: "' + paths[i] + '"')
     }
   }
@@ -185,7 +185,7 @@ function multiGlob (globs, globOptions) {
   var pathSet = {}
   var paths = []
   for (var i = 0; i < globs.length; i++) {
-    if (options.nomount && globs[i][0] === '/') {
+    if (options.nomount && path.normalize(globs[i])[0] === path.sep) {
       throw new Error('Absolute paths not allowed (`nomount` is enabled): ' + globs[i])
     }
     var matches = glob.sync(globs[i], options)
