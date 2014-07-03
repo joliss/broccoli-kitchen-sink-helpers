@@ -203,7 +203,7 @@ function multiGlob (globs, globOptions) {
   var options = {
     nomount: true,
     strict: true,
-    nonegate: truejk
+    nonegate: true
   }
   for (var key in globOptions) {
     if (globOptions.hasOwnProperty(key)) {
