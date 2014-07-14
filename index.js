@@ -165,7 +165,11 @@ function copyPreserveSync (src, dest, srcStats) {
     fs.writeFileSync(dest, content, { flag: 'wx' })
     fs.utimesSync(dest, srcStats.atime, srcStats.mtime)
   } else if (srcStats.isSymbolicLink()) {
-    fs.symlinkSync(fs.readlinkSync(src), dest)
+    // Identify the absolute path for the symlink target.
+    var from = path.dirname(src)
+    var to = fs.readlinkSync(src)
+    fs.symlinkSync(path.resolve(from, to), dest)
+
     // We cannot update the atime/mtime of a symlink yet:
     // https://github.com/joyent/node/issues/2142
   } else {
