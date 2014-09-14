@@ -27,24 +27,14 @@ function keysForTree (fullPath, options) {
   var _stack         = options._stack
   var _followSymlink = options._followSymlink
   var relativePath   = options.relativePath || '.'
-  var stats
+  var stats          = getStatsForPath(fullPath, _followSymlink)
   var statKeys
 
-  try {
-    if (_followSymlink) {
-      stats = fs.statSync(fullPath)
-    } else {
-      stats = fs.lstatSync(fullPath)
-    }
-  } catch (err) {
-    console.warn('Warning: failed to stat ' + fullPath)
-    // fullPath has probably ceased to exist. Leave `stats` undefined and
-    // proceed hashing.
-  }
   var childKeys = []
   if (stats) {
     statKeys = ['stats', stats.mode]
   } else {
+    console.warn('Warning: failed to stat ' + fullPath)
     statKeys = ['stat failed']
   }
   if (stats && stats.isDirectory()) {
@@ -53,15 +43,7 @@ function keysForTree (fullPath, options) {
       console.warn('Symlink directory loop detected at ' + fullPath + ' (note: loop detection may have false positives on Windows)')
     } else {
       if (_stack != null) _stack = _stack.concat([fileIdentity])
-      var entries
-      try {
-        entries = fs.readdirSync(fullPath).sort()
-      } catch (err) {
-        console.warn('Warning: Failed to read directory ' + fullPath)
-        console.warn(err.stack)
-        childKeys = ['readdir failed']
-        // That's all there is to say about this directory.
-      }
+      var entries = getFilesInPath(fullpath)
       if (entries != null) {
         for (var i = 0; i < entries.length; i++) {
 
@@ -71,6 +53,11 @@ function keysForTree (fullPath, options) {
           })
           childKeys = childKeys.concat(keys)
         }
+      } else {
+        console.warn('Warning: Failed to read directory ' + fullPath)
+        console.warn(err.stack)
+        childKeys = ['readdir failed']
+        // That's all there is to say about this directory.
       }
     }
   } else if (stats && stats.isSymbolicLink()) {
@@ -93,6 +80,32 @@ function keysForTree (fullPath, options) {
   return ['path', relativePath]
     .concat(statKeys)
     .concat(childKeys)
+}
+
+// these functions are part of keysForTree()
+// they have been separated to fix performance issues in issue #9
+function getStatsForPath (fullPath, followSymlink) {
+  var stats = null
+  try {
+    if (followSymlink) {
+      stats = fs.statSync(fullPath)
+    } else {
+      stats = fs.lstatSync(fullPath)
+    }
+  } catch (err) {
+    // fullPath has probably ceased to exist. Leave `stats` undefined and
+    // proceed hashing.
+  }
+  return stats
+}
+
+function getFilesInPath (fullPath) {
+  var entries = null
+  try {
+    entries = fs.readdirSync(fullPath).sort()
+  } catch (err) {
+  }
+  return entries
 }
 
 
