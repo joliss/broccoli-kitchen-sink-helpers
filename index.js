@@ -19,11 +19,11 @@ exports.hashTree = hashTree
 // return a different hash.
 //
 // (1) and (2) hold even in the face of a constantly-changing file system.
-function hashTree (fullPath) {
-  return hashStrings(keysForTree(fullPath))
+function hashTree (fullPath, options) {
+  return hashStrings(keysForTree(fullPath, options))
 }
 
-function keysForTree (fullPath, initialRelativePath) {
+function keysForTree (fullPath, initialRelativePath, options) {
   var relativePath   = initialRelativePath || '.'
   var stats
   var statKeys
@@ -59,14 +59,15 @@ function keysForTree (fullPath, initialRelativePath) {
       for (var i = 0; i < entries.length; i++) {
         var keys = keysForTree(
           path.join(fullPath, entries[i]),
-          path.join(relativePath, entries[i])
+          path.join(relativePath, entries[i]),
+          options
         )
         childKeys = childKeys.concat(keys)
       }
     }
   } else if (stats && stats.isFile()) {
-    statKeys.push(stats.mtime.getTime())
-    statKeys.push(stats.size)
+    var optionalDigestCache = options !== undefined ? options.digestCache : undefined;
+    statKeys.push(digestOfFileContents(fullPath, relativePath, stats, optionalDigestCache));
   }
 
   return ['path', relativePath]
@@ -74,6 +75,32 @@ function keysForTree (fullPath, initialRelativePath) {
     .concat(childKeys)
 }
 
+exports.digestOfFileContents = digestOfFileContents;
+function digestOfFileContents (fullPath, relativePath, stats, optionalDigestCache) {
+  var digest,
+      fileDigestCacheKey = [
+        relativePath,
+        stats.mtime.getTime(),
+        stats.size
+      ].join(',');
+
+  if (optionalDigestCache !== undefined) {
+    digest = optionalDigestCache[fileDigestCacheKey];
+  }
+
+  if (digest === undefined) {
+    digest = crypto
+      .createHash('sha1')
+      .update(fs.readFileSync(fullPath))
+      .digest('hex');
+
+    if (optionalDigestCache) {
+      optionalDigestCache[fileDigestCacheKey] = digest;
+    }
+  }
+
+  return digest;
+}
 
 exports.hashStats = hashStats
 function hashStats (stats, path) {
