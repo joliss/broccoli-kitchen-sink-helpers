@@ -20,7 +20,7 @@ exports.hashTree = hashTree
 //
 // (1) and (2) hold even in the face of a constantly-changing file system.
 function hashTree (fullPath, options) {
-  return hashStrings(keysForTree(fullPath, options))
+  return hashStrings(keysForTree(fullPath, undefined, options))
 }
 
 function keysForTree (fullPath, initialRelativePath, options) {
@@ -66,8 +66,7 @@ function keysForTree (fullPath, initialRelativePath, options) {
       }
     }
   } else if (stats && stats.isFile()) {
-    var optionalDigestCache = options !== undefined ? options.digestCache : undefined;
-    statKeys.push(digestOfFileContents(fullPath, relativePath, stats, optionalDigestCache));
+    statKeys.push(digestOfFileContents(fullPath, relativePath, stats, options));
   }
 
   return ['path', relativePath]
@@ -76,8 +75,9 @@ function keysForTree (fullPath, initialRelativePath, options) {
 }
 
 exports.digestOfFileContents = digestOfFileContents;
-function digestOfFileContents (fullPath, relativePath, stats, optionalDigestCache) {
+function digestOfFileContents (fullPath, relativePath, stats, options) {
   var digest,
+      optionalDigestCache = options !== undefined ? options.digestCache : undefined,
       fileDigestCacheKey = [
         relativePath,
         stats.mtime.getTime(),
@@ -94,7 +94,7 @@ function digestOfFileContents (fullPath, relativePath, stats, optionalDigestCach
       .update(fs.readFileSync(fullPath))
       .digest('hex');
 
-    if (optionalDigestCache) {
+    if (optionalDigestCache !== undefined) {
       optionalDigestCache[fileDigestCacheKey] = digest;
     }
   }
