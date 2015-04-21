@@ -23,6 +23,13 @@ function hashTree (fullPath, options) {
   return hashStrings(keysForTree(fullPath, undefined, options))
 }
 
+function hashTreeWithContents (fullPath, options) {
+  if (options === undefined) options = {}
+  options.hashContent = true
+  return hashStrings(keysForTree(fullPath, undefined, options))
+}
+exports.hashTreeWithContents = hashTreeWithContents
+
 function keysForTree (fullPath, initialRelativePath, options) {
   var relativePath   = initialRelativePath || '.'
   var stats
@@ -66,7 +73,12 @@ function keysForTree (fullPath, initialRelativePath, options) {
       }
     }
   } else if (stats && stats.isFile()) {
-    statKeys.push(digestOfFileContents(fullPath, relativePath, stats, options));
+    if (options && options.hashContent) {
+      statKeys.push(digestOfFileContents(fullPath, relativePath, stats, options));
+    } else {
+      statKeys.push(stats.mtime.getTime())
+      statKeys.push(stats.size)
+    }
   }
 
   return ['path', relativePath]
