@@ -74,6 +74,7 @@ function keysForTree (fullPath, initialRelativePath, options) {
     }
   } else if (stats && stats.isFile()) {
     if (options && options.hashContent) {
+      statKeys.push('content-digest')
       statKeys.push(digestOfFileContents(fullPath, relativePath, stats, options));
     } else {
       statKeys.push(stats.mtime.getTime())
