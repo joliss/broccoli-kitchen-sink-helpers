@@ -92,7 +92,7 @@ function digestOfFileContents (fullPath, relativePath, stats, options) {
   var digest,
       optionalDigestCache = options !== undefined ? options.digestCache : undefined,
       fileDigestCacheKey = [
-        relativePath,
+        fullPath,
         stats.mtime.getTime(),
         stats.size
       ].join(',');
