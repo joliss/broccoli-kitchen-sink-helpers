@@ -30,6 +30,14 @@ function hashTreeWithContents (fullPath, options) {
 }
 exports.hashTreeWithContents = hashTreeWithContents
 
+function hashFile(srcPath, relativePath, options) {
+  var fullPath = srcPath + '/' + relativePath;
+  if (options === undefined) options = {}
+  options.hashContent = true
+  return hashStrings(keysForTree(fullPath, relativePath, options))
+}
+exports.hashFile = hashFile
+
 function keysForTree (fullPath, initialRelativePath, options) {
   var relativePath   = initialRelativePath || '.'
   var stats
@@ -92,7 +100,7 @@ function digestOfFileContents (fullPath, relativePath, stats, options) {
   var digest,
       optionalDigestCache = options !== undefined ? options.digestCache : undefined,
       fileDigestCacheKey = [
-        fullPath,
+        relativePath,
         stats.mtime.getTime(),
         stats.size
       ].join(',');
