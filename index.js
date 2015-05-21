@@ -97,6 +97,10 @@ function keysForTree (fullPath, initialRelativePath, options) {
 
 exports.digestOfFileContents = digestOfFileContents;
 function digestOfFileContents (fullPath, relativePath, stats, options) {
+  if (relativePath === '.') {
+    throw new Error('digestOfFileContents got relativePath of ".", needs broccoli-filter customizations to pass along correct relative path to hashTree');
+  }
+
   var digest,
       optionalDigestCache = options !== undefined ? options.digestCache : undefined,
       fileDigestCacheKey = [
