@@ -19,11 +19,26 @@ exports.hashTree = hashTree
 // return a different hash.
 //
 // (1) and (2) hold even in the face of a constantly-changing file system.
-function hashTree (fullPath) {
-  return hashStrings(keysForTree(fullPath))
+function hashTree (fullPath, options) {
+  return hashStrings(keysForTree(fullPath, undefined, options))
 }
 
-function keysForTree (fullPath, initialRelativePath) {
+function hashTreeWithContents (fullPath, options) {
+  if (options === undefined) options = {}
+  options.hashContent = true
+  return hashStrings(keysForTree(fullPath, undefined, options))
+}
+exports.hashTreeWithContents = hashTreeWithContents
+
+function hashFile(srcPath, relativePath, options) {
+  var fullPath = srcPath + '/' + relativePath;
+  if (options === undefined) options = {}
+  options.hashContent = true
+  return hashStrings(keysForTree(fullPath, relativePath, options))
+}
+exports.hashFile = hashFile
+
+function keysForTree (fullPath, initialRelativePath, options) {
   var relativePath   = initialRelativePath || '.'
   var stats
   var statKeys
@@ -59,14 +74,20 @@ function keysForTree (fullPath, initialRelativePath) {
       for (var i = 0; i < entries.length; i++) {
         var keys = keysForTree(
           path.join(fullPath, entries[i]),
-          path.join(relativePath, entries[i])
+          path.join(relativePath, entries[i]),
+          options
         )
         childKeys = childKeys.concat(keys)
       }
     }
   } else if (stats && stats.isFile()) {
-    statKeys.push(stats.mtime.getTime())
-    statKeys.push(stats.size)
+    if (options && options.hashContent) {
+      statKeys.push('content-digest')
+      statKeys.push(digestOfFileContents(fullPath, relativePath, stats, options));
+    } else {
+      statKeys.push(stats.mtime.getTime())
+      statKeys.push(stats.size)
+    }
   }
 
   return ['path', relativePath]
@@ -74,6 +95,37 @@ function keysForTree (fullPath, initialRelativePath) {
     .concat(childKeys)
 }
 
+exports.digestOfFileContents = digestOfFileContents;
+function digestOfFileContents (fullPath, relativePath, stats, options) {
+  if (relativePath === '.') {
+    throw new Error('digestOfFileContents got relativePath of ".", needs broccoli-filter customizations to pass along correct relative path to hashTree');
+  }
+
+  var digest,
+      optionalDigestCache = options !== undefined ? options.digestCache : undefined,
+      fileDigestCacheKey = [
+        relativePath,
+        stats.mtime.getTime(),
+        stats.size
+      ].join(',');
+
+  if (optionalDigestCache !== undefined) {
+    digest = optionalDigestCache[fileDigestCacheKey];
+  }
+
+  if (digest === undefined) {
+    digest = crypto
+      .createHash('sha1')
+      .update(fs.readFileSync(fullPath))
+      .digest('hex');
+
+    if (optionalDigestCache !== undefined) {
+      optionalDigestCache[fileDigestCacheKey] = digest;
+    }
+  }
+
+  return digest;
+}
 
 exports.hashStats = hashStats
 function hashStats (stats, path) {
