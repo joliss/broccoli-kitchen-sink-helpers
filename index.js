@@ -182,16 +182,16 @@ function multiGlob (globs, globOptions) {
   if (!Array.isArray(globs)) {
     throw new TypeError("multiGlob's first argument must be an array");
   }
+
+  const allowEmpty = globOptions.allowEmpty;
+  delete globOptions.allowEmpty;
+
   var options = {
     follow: true,
     nomount: true,
     strict: true
   }
-  for (var key in globOptions) {
-    if (globOptions.hasOwnProperty(key)) {
-      options[key] = globOptions[key]
-    }
-  }
+  Object.assign(options, globOptions);
 
   var pathSet = {}
   var paths = []
@@ -200,7 +200,7 @@ function multiGlob (globs, globOptions) {
       throw new Error('Absolute paths not allowed (`nomount` is enabled): ' + globs[i])
     }
     var matches = glob.sync(globs[i], options)
-    if (matches.length === 0) {
+    if (matches.length === 0 && !allowEmpty) {
       throw new Error('Path or pattern "' + globs[i] + '" did not match any files')
     }
     for (var j = 0; j < matches.length; j++) {
